@@ -32,4 +32,4 @@ IAM role for instance profile
 
 ## EC2
 
-It creates EC2 instances, one for each az and subnet with instance type t2.micro consuming the instance profile.
+It creates EC2 instances, one for each az and subnet with instance type t2.micro consuming the instance profile from [iam](./iam). The ec2 will have aws cli install via the userdata and the profile should allow the s3 list buckets operation. It also requires `ssh_key_name` input for ssh access.
