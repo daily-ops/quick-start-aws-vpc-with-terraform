@@ -7,7 +7,7 @@ resource "aws_vpc" "my_vpc" {
 }
 
 resource "random_string" "prefix" {
-  length = 6
+  length = 5
   special = false
   upper = false
   numeric = false
