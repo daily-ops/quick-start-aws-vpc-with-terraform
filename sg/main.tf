@@ -10,10 +10,16 @@ terraform {
 }
 
 data "terraform_remote_state" "vpc" {
-  backend = "local"
+
+  backend = "remote"
   config = {
-    path = "../vpc/terraform.tfstate"
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-vpc"
+    }
   }
+
 }
 
 resource "aws_security_group" "public" {
