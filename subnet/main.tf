@@ -4,11 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.8.0"
     }
-
-    random = {
-      source = "hashicorp/random"
-      version = "~> 3.7.0"
-    }
   }
 }
 
@@ -50,7 +45,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "tf-managed-${random_string.prefix.result}-public"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-public"
     zone = "public"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
