@@ -37,7 +37,9 @@ resource "aws_iam_policy" "public-ec2-policy" {
                "s3:ListBucket",
                "s3:ListAllMyBuckets"
                ],
-               "Resource": "*"}]
+               "Resource": "*"
+            }
+        ]
     }
     EOF
 }
