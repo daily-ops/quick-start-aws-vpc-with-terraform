@@ -94,7 +94,7 @@ resource "aws_iam_policy" "private-ec2-policy" {
     EOF
 }
 
-resource "aws_iam_policy_attachment" "public-ec2-role-attachement" {
+resource "aws_iam_policy_attachment" "private-ec2-role-attachement" {
     name = "tfc-computes-private-zone-role-attachment"
     policy_arn = aws_iam_policy.private-ec2-policy.arn
     roles = [aws_iam_role.private-ec2-role.id]
