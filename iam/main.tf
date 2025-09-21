@@ -9,7 +9,7 @@ terraform {
 }
 
 resource "aws_iam_role" "public-ec2-role" {
-  name               = "public-ec2-role"
+  name               = "tfc-computes-public-zone-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
@@ -25,7 +25,7 @@ data "aws_iam_policy_document" "assume_role" {
 }
 
 resource "aws_iam_policy" "public-ec2-policy" {
-    name      = "public-ec2-policy"
+    name      = "tfc-computes-public-zone-policy"
     policy    = <<-EOF
     {
        "Version": "2012-10-17",
@@ -43,7 +43,7 @@ resource "aws_iam_policy" "public-ec2-policy" {
 }
 
 resource "aws_iam_policy_attachment" "public-ec2-role-attachement" {
-    name = "public-ec2-role"
+    name = "tfc-computes-public-zone-role-attachment"
     policy_arn = aws_iam_policy.public-ec2-policy.arn
     roles = [aws_iam_role.public-ec2-role.id]
 }
