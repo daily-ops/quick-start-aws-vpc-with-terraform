@@ -14,24 +14,41 @@ variable "ssh_key_name" {
 }
 
 data "terraform_remote_state" "vpc" {
-    backend = "local"
-    config = {
-        path = "../vpc/terraform.tfstate"
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-vpc"
     }
+  }
+
 }
 
 data "terraform_remote_state" "sg" {
-    backend = "local"
-    config = {
-        path = "../sg/terraform.tfstate"
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-security-group"
     }
+  }
+
 }
 
 data "terraform_remote_state" "iam" {
-    backend = "local"
-    config = {
-        path = "../iam/terraform.tfstate"
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-computes-iam"
     }
+  }
 }
 
 data "aws_ami" "ubuntu_22_04" {
