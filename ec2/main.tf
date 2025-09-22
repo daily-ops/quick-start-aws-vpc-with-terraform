@@ -46,7 +46,7 @@ data "terraform_remote_state" "iam" {
     hostname = "app.terraform.io"
     organization = "daily-ops"
     workspaces = {
-      name = "aws-computes-iam"
+      name = "aws-computes-iam-roles"
     }
   }
 }
@@ -63,7 +63,7 @@ data "aws_ami" "ubuntu_22_04" {
 }
 
 resource "aws_iam_instance_profile" "public" {
-    name = "public-ec2-profile"
+    name = "tfc-instance-profile-public-ec2"
     role = keys(data.terraform_remote_state.iam.outputs.public-ec2-role)[0]
 }
 
@@ -81,6 +81,15 @@ resource "aws_instance" "public" {
         sudo apt install -y awscli
     EOF
     iam_instance_profile = aws_iam_instance_profile.public.name
+    tags = {
+        Name = "${data.terraform_remote_state.vpc.outputs.build_id}-public-${each.key}"
+        Cost = "demo"
+    }
+}
+
+resource "aws_iam_instance_profile" "private" {
+    name = "tfc-instance-profile-private-ec2"
+    role = keys(data.terraform_remote_state.iam.outputs.private-ec2-role)[0]
 }
 
 resource "aws_instance" "private" {
@@ -91,6 +100,12 @@ resource "aws_instance" "private" {
     subnet_id = each.value
     key_name = var.ssh_key_name
     vpc_security_group_ids = [data.terraform_remote_state.sg.outputs.private_sg_id]
+    iam_instance_profile = aws_iam_instance_profile.private.name
+
+    tags = {
+        Name = "${data.terraform_remote_state.vpc.outputs.build_id}-private-${each.key}"
+        Cost = "demo"
+    }
 }
 
 output "my_ec2_public_ips" {
