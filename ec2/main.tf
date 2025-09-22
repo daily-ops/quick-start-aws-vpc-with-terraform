@@ -51,6 +51,18 @@ data "terraform_remote_state" "iam" {
   }
 }
 
+data "terraform_remote_state" "subnet" {
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-vpc-subnets"
+    }
+  }
+}
+
 data "aws_ami" "ubuntu_22_04" {
     most_recent = true
 
@@ -68,7 +80,7 @@ resource "aws_iam_instance_profile" "public" {
 }
 
 resource "aws_instance" "public" {
-    for_each = data.terraform_remote_state.vpc.outputs.public_subnets
+    for_each = data.terraform_remote_state.subnet.outputs.public_subnets
     ami = data.aws_ami.ubuntu_22_04.id
     instance_type = "t2.micro"
     availability_zone = each.key
@@ -93,7 +105,7 @@ resource "aws_iam_instance_profile" "private" {
 }
 
 resource "aws_instance" "private" {
-    for_each = data.terraform_remote_state.vpc.outputs.private_subnets
+    for_each = data.terraform_remote_state.subnet.outputs.private_subnets
     ami = data.aws_ami.ubuntu_22_04.id
     instance_type = "t2.micro"
     availability_zone = each.key
