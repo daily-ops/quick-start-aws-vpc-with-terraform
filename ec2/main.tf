@@ -14,24 +14,53 @@ variable "ssh_key_name" {
 }
 
 data "terraform_remote_state" "vpc" {
-    backend = "local"
-    config = {
-        path = "../vpc/terraform.tfstate"
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-vpc"
     }
+  }
+
 }
 
 data "terraform_remote_state" "sg" {
-    backend = "local"
-    config = {
-        path = "../sg/terraform.tfstate"
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-security-group"
     }
+  }
+
 }
 
 data "terraform_remote_state" "iam" {
-    backend = "local"
-    config = {
-        path = "../iam/terraform.tfstate"
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-computes-iam-roles"
     }
+  }
+}
+
+data "terraform_remote_state" "subnet" {
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-vpc-subnets"
+    }
+  }
 }
 
 data "aws_ami" "ubuntu_22_04" {
@@ -46,12 +75,12 @@ data "aws_ami" "ubuntu_22_04" {
 }
 
 resource "aws_iam_instance_profile" "public" {
-    name = "public-ec2-profile"
+    name = "tfc-instance-profile-public-ec2"
     role = keys(data.terraform_remote_state.iam.outputs.public-ec2-role)[0]
 }
 
 resource "aws_instance" "public" {
-    for_each = data.terraform_remote_state.vpc.outputs.public_subnets
+    for_each = data.terraform_remote_state.subnet.outputs.public_subnets
     ami = data.aws_ami.ubuntu_22_04.id
     instance_type = "t2.micro"
     availability_zone = each.key
@@ -64,16 +93,31 @@ resource "aws_instance" "public" {
         sudo apt install -y awscli
     EOF
     iam_instance_profile = aws_iam_instance_profile.public.name
+    tags = {
+        Name = "${data.terraform_remote_state.vpc.outputs.build_id}-public-${each.key}"
+        Cost = "demo"
+    }
+}
+
+resource "aws_iam_instance_profile" "private" {
+    name = "tfc-instance-profile-private-ec2"
+    role = keys(data.terraform_remote_state.iam.outputs.private-ec2-role)[0]
 }
 
 resource "aws_instance" "private" {
-    for_each = data.terraform_remote_state.vpc.outputs.private_subnets
+    for_each = data.terraform_remote_state.subnet.outputs.private_subnets
     ami = data.aws_ami.ubuntu_22_04.id
     instance_type = "t2.micro"
     availability_zone = each.key
     subnet_id = each.value
     key_name = var.ssh_key_name
     vpc_security_group_ids = [data.terraform_remote_state.sg.outputs.private_sg_id]
+    iam_instance_profile = aws_iam_instance_profile.private.name
+
+    tags = {
+        Name = "${data.terraform_remote_state.vpc.outputs.build_id}-private-${each.key}"
+        Cost = "demo"
+    }
 }
 
 output "my_ec2_public_ips" {
