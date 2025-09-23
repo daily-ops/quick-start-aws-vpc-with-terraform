@@ -7,6 +7,8 @@ terraform {
   }
 }
 
+data "aws_region" "current" {}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -82,6 +84,39 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = data.terraform_remote_state.vpc.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
+  policy = jsonencode({
+        Statement :  [
+          {
+            "Sid": "Statement1",
+            "Effect": "Allow",
+            "Action": [
+              "s3:DeleteObject",
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:ReplicateObject",
+              "s3:RestoreObject"
+            ],
+            "Resource": "*"
+          }
+        ]
+        Version : "2008-10-17"
+  })
+
+  tags = {
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}"
+    Group = data.terraform_remote_state.vpc.outputs.build_id
+  }
+}
+
+resource "aws_vpc_endpoint_route_table_association" "s3" {
+  route_table_id  = aws_route_table.private.id
+  vpc_endpoint_id = aws_vpc_endpoint.s3.id
+}
+
 output "public_subnets" {
   value = { for s in aws_subnet.public : s.availability_zone => s.id }
 }
@@ -92,4 +127,12 @@ output "private_subnets" {
 
 output "private_route_table" {
   value = aws_route_table.private.id
+}
+
+output "s3_private_endpoint_id" {
+  value = aws_vpc_endpoint.s3.id
+}
+
+output "s3_private_endpoint_arn" {
+  value = aws_vpc_endpoint.s3.arn
 }
