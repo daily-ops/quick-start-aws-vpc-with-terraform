@@ -86,7 +86,7 @@ resource "aws_route_table_association" "private" {
 
 
 resource "aws_vpc_endpoint" "s3" {
-  vpc_id       = data.terraform_remote_state.vpc.id
+  vpc_id       = data.aws_vpc.my_vpc.id
   service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
   policy = jsonencode({
         Statement :  [
