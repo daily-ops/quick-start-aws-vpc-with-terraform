@@ -88,13 +88,14 @@ resource "aws_route_table_association" "private" {
 resource "aws_vpc_endpoint" "s3" {
   vpc_id       = data.aws_vpc.my_vpc.id
   service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
-  policy = <<EOS
+  policy = <<-EOS
 {
         "Version" : "2008-10-17",
         "Statement" :  [
           {
             "Sid": "Statement1",
             "Effect": "Allow",
+            "Principal": "*",
             "Action": [
               "s3:DeleteObject",
               "s3:GetObject",
