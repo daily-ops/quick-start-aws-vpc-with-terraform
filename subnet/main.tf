@@ -90,8 +90,8 @@ resource "aws_vpc_endpoint" "s3" {
   service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
   policy = <<EOS
 {
-        Version : "2008-10-17",
-        Statement :  [
+        "Version" : "2008-10-17",
+        "Statement" :  [
           {
             "Sid": "Statement1",
             "Effect": "Allow",
