@@ -86,6 +86,16 @@ resource "aws_security_group_rule" "private-ssh" {
     source_security_group_id = aws_security_group.public.id
 }
 
+resource "aws_security_group_rule" "private-https-egress" {
+  security_group_id = aws_security_group.public.id
+
+  type = "egress"
+  protocol = "HTTPS"
+  from_port = 443
+  to_port = 443
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
 output "public_sg_id" {
     value = aws_security_group.public.id
 }
