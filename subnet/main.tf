@@ -60,7 +60,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-public"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-public-${each.key}"
     zone = "public"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
@@ -75,7 +75,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-private"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-private-${each.key}"
     zone = "private"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
@@ -87,7 +87,7 @@ resource "aws_route_table" "private" {
   
   vpc_id = data.aws_vpc.my_vpc.id
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-private"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-rt-private"
     zone = "private"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
@@ -125,7 +125,7 @@ resource "aws_vpc_endpoint" "s3" {
 EOS
 
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-s3"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
 }
