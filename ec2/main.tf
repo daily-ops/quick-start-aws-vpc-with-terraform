@@ -65,12 +65,9 @@ data "terraform_remote_state" "subnet" {
 
 data "aws_ami" "ubuntu_22_04" {
     most_recent = true
-
-    owners = ["099720109477"]
-
     filter {
         name = "name"
-        values = ["ubuntu-minimal/images/hvm-ssd/ubuntu-jammy-22.04-amd64-minimal-*"]
+        values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
     }
 }
 
@@ -92,14 +89,6 @@ resource "aws_instance" "public" {
         sudo apt update
         sudo apt install -y awscli
 
-        # https://repost.aws/knowledge-center/install-ssm-agent-ec2-linux
-
-        mkdir /tmp/ssm
-        cd /tmp/ssm
-        # aws s3 cp s3://km-software-packages/amazon-ssm-agent.deb .
-        wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-        sudo dpkg -i amazon-ssm-agent.deb
-        sudo systemctl start amazon-ssm-agent
     EOF
     iam_instance_profile = aws_iam_instance_profile.public.name
     tags = {
@@ -122,20 +111,7 @@ resource "aws_instance" "private" {
     key_name = var.ssh_key_name
     vpc_security_group_ids = [data.terraform_remote_state.sg.outputs.private_sg_id]
     iam_instance_profile = aws_iam_instance_profile.private.name
-    user_data = <<-EOF
-        #!/bin/bash
-        sudo apt update
-        sudo apt install -y awscli
-
-        # https://repost.aws/knowledge-center/install-ssm-agent-ec2-linux
-
-        mkdir /tmp/ssm
-        cd /tmp/ssm
-        aws s3 cp s3://km-software-packages/amazon-ssm-agent.deb .
-        # wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-        sudo dpkg -i amazon-ssm-agent.deb
-        sudo systemctl start amazon-ssm-agent
-    EOF
+   
     tags = {
         Name = "${data.terraform_remote_state.vpc.outputs.build_id}-private-${each.key}"
         Cost = "demo"
