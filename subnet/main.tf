@@ -26,6 +26,19 @@ data "terraform_remote_state" "vpc" {
 
 }
 
+data "terraform_remote_state" "sg" {
+
+  backend = "remote"
+  config = {
+    hostname = "app.terraform.io"
+    organization = "daily-ops"
+    workspaces = {
+      name = "aws-security-group"
+    }
+  }
+
+}
+
 data "aws_vpc" "my_vpc" {
   id = data.terraform_remote_state.vpc.outputs.vpc_id
 }
@@ -47,7 +60,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-public"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-public-${each.key}"
     zone = "public"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
@@ -62,7 +75,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-private"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-private-${each.key}"
     zone = "private"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
@@ -70,18 +83,20 @@ resource "aws_subnet" "private" {
 
 
 resource "aws_route_table" "private" {
+  for_each = toset(local.azs)
+  
   vpc_id = data.aws_vpc.my_vpc.id
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-private"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-rt-private"
     zone = "private"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
 }
 
 resource "aws_route_table_association" "private" {
-  for_each = aws_subnet.private
-  subnet_id = each.value.id
-  route_table_id = aws_route_table.private.id
+  for_each = toset(local.azs)
+  subnet_id = "${aws_subnet.private[each.key].id}"
+  route_table_id = "${aws_route_table.private[each.key].id}"
 }
 
 
@@ -110,15 +125,89 @@ resource "aws_vpc_endpoint" "s3" {
 EOS
 
   tags = {
-    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}"
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-s3"
     Group = data.terraform_remote_state.vpc.outputs.build_id
   }
 }
 
 resource "aws_vpc_endpoint_route_table_association" "s3" {
-  route_table_id  = aws_route_table.private.id
+  for_each = toset(local.azs)
+  route_table_id  = "${aws_route_table.private[each.key].id}"
   vpc_endpoint_id = aws_vpc_endpoint.s3.id
 }
+
+resource "aws_vpc_endpoint" "ssm" {
+  vpc_id       = data.aws_vpc.my_vpc.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.ssm"
+  policy = <<-EOS
+{
+        "Version" : "2008-10-17",
+        "Statement" :  [
+          {
+            "Sid": "Statement1",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "*",
+            "Resource": "*"
+          }
+        ]
+}
+EOS
+
+  vpc_endpoint_type = "Interface"
+
+  security_group_ids = [
+    data.terraform_remote_state.sg.outputs.private_sg_id
+  ]
+
+  subnet_ids = [for subnet in aws_subnet.private: subnet.id]
+
+  private_dns_enabled = true
+  tags = {
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-ssm"
+    Group = data.terraform_remote_state.vpc.outputs.build_id
+  }
+}
+
+
+resource "aws_vpc_endpoint" "ssm-session" {
+  vpc_id       = data.aws_vpc.my_vpc.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.ssmmessages"
+  policy = <<-EOS
+{
+        "Version" : "2008-10-17",
+        "Statement" :  [
+          {
+            "Sid": "Statement1",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "*",
+            "Resource": "*"
+          }
+        ]
+}
+EOS
+
+  vpc_endpoint_type = "Interface"
+
+  security_group_ids = [
+    data.terraform_remote_state.sg.outputs.private_sg_id
+  ]
+
+  subnet_ids = [for subnet in aws_subnet.private: subnet.id]
+
+  private_dns_enabled = true
+  tags = {
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-ssm-ssmmessages"
+    Group = data.terraform_remote_state.vpc.outputs.build_id
+  }
+}
+
+# resource "aws_route" "ssm-session" {
+#   for_each = toset(local.azs)
+#   route_table_id            = "${aws_route_table.private[each.key].id}"
+#   network_interface_id = "${aws_vpc_endpoint.ssm-session.network_interface_ids[index(local.azs, each.key)]}"
+# }
 
 output "public_subnets" {
   value = { for s in aws_subnet.public : s.availability_zone => s.id }
@@ -128,8 +217,8 @@ output "private_subnets" {
   value = { for s in aws_subnet.private : s.availability_zone => s.id }
 }
 
-output "private_route_table" {
-  value = aws_route_table.private.id
+output "private_route_tables" {
+  value = [ for rt in aws_route_table.private : rt.id ]
 }
 
 output "s3_private_endpoint_id" {

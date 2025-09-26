@@ -47,7 +47,10 @@ resource "aws_iam_policy" "public-ec2-policy" {
 resource "aws_iam_policy_attachment" "public-ec2-role-attachement" {
     name = "tfc-computes-public-zone-role-attachment"
     policy_arn = aws_iam_policy.public-ec2-policy.arn
-    roles = [aws_iam_role.public-ec2-role.id]
+    roles = [
+        aws_iam_role.public-ec2-role.id,
+        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ]
 }
 
 
@@ -85,7 +88,8 @@ resource "aws_iam_policy" "private-ec2-policy" {
                     "s3:GetObjectVersionForReplication",
                     "s3:DeleteObject",
                     "s3:GetAccessPointForObjectLambda",
-                    "s3:GetObjectVersion"
+                    "s3:GetObjectVersion",
+                    "s3:ListBucket"
                ],
                "Resource": "*"
             }
@@ -97,7 +101,10 @@ resource "aws_iam_policy" "private-ec2-policy" {
 resource "aws_iam_policy_attachment" "private-ec2-role-attachement" {
     name = "tfc-computes-private-zone-role-attachment"
     policy_arn = aws_iam_policy.private-ec2-policy.arn
-    roles = [aws_iam_role.private-ec2-role.id]
+    roles = [
+        aws_iam_role.private-ec2-role.id,
+        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ]
 }
 
 output "public-ec2-role" {
