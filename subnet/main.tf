@@ -169,14 +169,45 @@ EOS
   }
 }
 
-resource "aws_route" "ssm" {
-  for_each = toset(local.azs)
-  route_table_id            = aws_route_table.private[each.key].id
-  destination_cidr_block    = "10.0.1.0/22"
-  vpc_peering_connection_id = "pcx-45ff3dc1"
-  depends_on                = [aws_route_table.testing]
+
+resource "aws_vpc_endpoint" "ssm-session" {
+  vpc_id       = data.aws_vpc.my_vpc.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.ssmmessages"
+  policy = <<-EOS
+{
+        "Version" : "2008-10-17",
+        "Statement" :  [
+          {
+            "Sid": "Statement1",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "*",
+            "Resource": "*"
+          }
+        ]
+}
+EOS
+
+  vpc_endpoint_type = "Interface"
+
+  security_group_ids = [
+    data.terraform_remote_state.sg.outputs.private_sg_id
+  ]
+
+  subnet_ids = [for subnet in aws_subnet.private: subnet.id]
+
+  private_dns_enabled = true
+  tags = {
+    Name = "tf-managed-${data.terraform_remote_state.vpc.outputs.build_id}-ssm-ssmmessages"
+    Group = data.terraform_remote_state.vpc.outputs.build_id
+  }
 }
 
+# resource "aws_route" "ssm-session" {
+#   for_each = toset(local.azs)
+#   route_table_id            = "${aws_route_table.private[each.key].id}"
+#   network_interface_id = "${aws_vpc_endpoint.ssm-session.network_interface_ids[index(local.azs, each.key)]}"
+# }
 
 output "public_subnets" {
   value = { for s in aws_subnet.public : s.availability_zone => s.id }
@@ -186,8 +217,8 @@ output "private_subnets" {
   value = { for s in aws_subnet.private : s.availability_zone => s.id }
 }
 
-output "private_route_table" {
-  value = aws_route_table.private.id
+output "private_route_tables" {
+  value = [ for rt in aws_route_table.private : rt.id ]
 }
 
 output "s3_private_endpoint_id" {
