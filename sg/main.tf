@@ -40,6 +40,15 @@ resource "aws_security_group_rule" "public-ssh" {
 
 }
 
+resource "aws_security_group_rule" "public-https-self" {
+    security_group_id = aws_security_group.public.id
+
+    type = "ingress"
+    protocol = "tcp"
+    from_port = 443
+    to_port = 443
+    source_security_group_id = aws_security_group.public.id
+}
 
 resource "aws_security_group_rule" "egress-to-private" {
   security_group_id = aws_security_group.public.id
