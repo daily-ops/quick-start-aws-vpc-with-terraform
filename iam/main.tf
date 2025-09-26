@@ -48,11 +48,17 @@ resource "aws_iam_policy_attachment" "public-ec2-role-attachement" {
     name = "tfc-computes-public-zone-role-attachment"
     policy_arn = aws_iam_policy.public-ec2-policy.arn
     roles = [
-        aws_iam_role.public-ec2-role.id,
-        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        aws_iam_role.public-ec2-role.id
     ]
 }
 
+resource "aws_iam_policy_attachment" "public-ec2-ssm-role-attachement" {
+    name = "tfc-computes-public-zone-ssm-role-attachment"
+    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    roles = [
+        aws_iam_role.public-ec2-role.id
+    ]
+}
 
 resource "aws_iam_role" "private-ec2-role" {
   name               = "tfc-computes-private-zone-role"
@@ -102,10 +108,18 @@ resource "aws_iam_policy_attachment" "private-ec2-role-attachement" {
     name = "tfc-computes-private-zone-role-attachment"
     policy_arn = aws_iam_policy.private-ec2-policy.arn
     roles = [
-        aws_iam_role.private-ec2-role.id,
-        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        aws_iam_role.private-ec2-role.id        
     ]
 }
+
+resource "aws_iam_policy_attachment" "private-ec2-ssm-role-attachement" {
+    name = "tfc-computes-private-zone-ssm-role-attachment"
+    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    roles = [
+        aws_iam_role.private-ec2-role.id        
+    ]
+}
+
 
 output "public-ec2-role" {
     value = { 
